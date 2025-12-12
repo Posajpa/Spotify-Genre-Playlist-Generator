@@ -149,7 +149,7 @@ if 'code' in st.query_params:
     try:
         sp = Spotify(auth_manager=auth_manager)
         st.session_state['authenticated'] = True
-        st.rerun()
+        # st.rerun()
     except:
         st.session_state['authenticated'] = False
 
