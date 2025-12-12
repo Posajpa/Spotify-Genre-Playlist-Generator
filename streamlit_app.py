@@ -130,24 +130,30 @@ st.markdown(
     unsafe_allow_html=True)
 st.markdown("---")
 
+# Initialize session state
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
 auth_manager = get_auth_manager()
 
 # --- STEP 1: Handle redirect back from Spotify ---
 if "code" in st.query_params:
     try:
+        # This should validate and cache the token
+        auth_manager.get_access_token(st.query_params["code"])
         sp = Spotify(auth_manager=auth_manager)
         st.session_state["authenticated"] = True
-        st.rerun()
-    except Exception:
-        st.error("Authentication failed.")
-        st.error("2")
+        st.rerun()  # This will clear the code from URL
+    except Exception as e:
+        st.error(f"Authentication failed: {e}")
         st.stop()
 
 # --- STEP 2: If token cached, authenticate automatically ---
-elif auth_manager.get_cached_token():
-    st.session_state["authenticated"] = True
-    sp = Spotify(auth_manager=auth_manager)
-    st.error("3")
+elif not st.session_state["authenticated"]:
+    token = auth_manager.get_cached_token()
+    if token and not auth_manager.is_token_expired(token):
+        st.session_state["authenticated"] = True
+        # Don't create sp here - it will be created after authentication check
 
 # --- STEP 3: If not authenticated yet, show login button ---
 if not st.session_state["authenticated"]:
@@ -156,12 +162,10 @@ if not st.session_state["authenticated"]:
         f"<a href='{auth_url}' target='_self'><button style='margin-top:20px;'>Log in to Spotify</button></a>",
         unsafe_allow_html=True
     )
-    st.error("4")
     st.stop()
 
-st.error("5")
 # --- IF WE REACH THIS POINT: user is authenticated ---
-sp = Spotify(auth_manager=auth_manager)
+sp = Spotify(auth_manager=auth_manager
 st.error("6")
 
 # Fetch cached tracks & genres
