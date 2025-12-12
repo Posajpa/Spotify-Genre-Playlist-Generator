@@ -144,31 +144,31 @@ st.markdown("---")
 
 auth_manager = get_auth_manager()
 
-# Handle redirect with ?code=... FIRST
-if 'code' in st.query_params:
+# --- STEP 1: Handle the redirect back from Spotify (with ?code=...) ---
+if "code" in st.query_params:
     try:
         sp = Spotify(auth_manager=auth_manager)
-        st.session_state['authenticated'] = True
-    except:
-        st.session_state['authenticated'] = False
+        st.session_state["authenticated"] = True
+        st.experimental_rerun()
+    except Exception as e:
+        st.error("Authentication failed.")
+        st.stop()
 
-# If token cached, authenticate immediately
+# --- STEP 2: If token already cached, authenticate automatically ---
 elif auth_manager.get_cached_token():
+    st.session_state["authenticated"] = True
     sp = Spotify(auth_manager=auth_manager)
-    st.session_state['authenticated'] = True
 
-# Show login button if not authenticated
-if not st.session_state.get('authenticated', False):
-    st.info("Please log in to Spotify to continue.")
+# --- STEP 3: If not authenticated yet, show login button ---
+if not st.session_state.get("authenticated", False):
     auth_url = auth_manager.get_authorize_url()
-    if st.button("Log in to Spotify", on_click=auth_url):
-        st.markdown(f'<meta http-equiv="refresh" content="0; '
-                    f'url={auth_url}"/>',
-                    unsafe_allow_html=True)
+    st.markdown(
+        f"<a href='{auth_url}' target='_self'><button style='margin-top:20px;'>Log in to Spotify</button></a>",
+        unsafe_allow_html=True
+    )
+    st.stop()   # do not continue until authenticated
 
-if not st.session_state['authenticated']:
-    st.warning("Error authenticating")
-
+# --- IF WE REACH THIS POINT: user is authenticated ---
 sp = Spotify(auth_manager=auth_manager)
 
 # Fetch cached tracks & genres
