@@ -131,7 +131,6 @@ st.markdown(
 st.markdown("---")
 
 auth_manager = get_auth_manager()
-st.error("1")
 
 # --- STEP 1: Handle redirect back from Spotify ---
 if "code" in st.query_params:
@@ -151,7 +150,7 @@ elif auth_manager.get_cached_token():
     st.error("3")
 
 # --- STEP 3: If not authenticated yet, show login button ---
-if not st.session_state.get("authenticated", False):
+if not st.session_state["authenticated"]:
     auth_url = auth_manager.get_authorize_url()
     st.markdown(
         f"<a href='{auth_url}' target='_self'><button style='margin-top:20px;'>Log in to Spotify</button></a>",
