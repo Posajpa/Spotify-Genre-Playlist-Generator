@@ -165,7 +165,7 @@ if not st.session_state["authenticated"]:
     st.stop()
 
 # --- IF WE REACH THIS POINT: user is authenticated ---
-sp = Spotify(auth_manager=auth_manager
+sp = Spotify(auth_manager=auth_manager)
 st.error("6")
 
 # Fetch cached tracks & genres
