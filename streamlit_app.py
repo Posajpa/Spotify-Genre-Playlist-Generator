@@ -4,13 +4,17 @@ from spotipy.cache_handler import CacheHandler
 from spotipy.oauth2 import SpotifyOAuth
 import os
 from collections import Counter, defaultdict
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
+#
+# load_dotenv()
 
-load_dotenv()
+st.write("CLIENT_ID:", st.secrets["SPOTIPY_CLIENT_ID"])
+st.write("CLIENT_SECRET:", st.secrets["SPOTIPY_CLIENT_SECRET"])
+st.write("REDIRECT_URI:", st.secrets["SPOTIPY_REDIRECT_URI"])
 
-CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
-CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
+# CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
+# CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
+# REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
 
 
 class StreamlitCacheHandler(CacheHandler):
