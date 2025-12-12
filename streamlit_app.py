@@ -130,43 +130,103 @@ st.markdown(
     unsafe_allow_html=True)
 st.markdown("---")
 
-# Initialize session state
-if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
+# 1. INITIALIZATION
+if "auth_state" not in st.session_state:
+    st.session_state.auth_state = {
+        "authenticated": False,
+        "sp_client": None,
+        "user_id": None
+    }
 
-auth_manager = get_auth_manager()
+auth_manager = get_auth_manager()  # Your SpotifyOAuth instance
 
-# --- STEP 1: Handle redirect back from Spotify ---
+# 2. HANDLE OAUTH CALLBACK (User just returned from Spotify)
 if "code" in st.query_params:
     try:
-        # This should validate and cache the token
-        auth_manager.get_access_token(st.query_params["code"])
-        sp = Spotify(auth_manager=auth_manager)
-        st.session_state["authenticated"] = True
-        st.rerun()  # This will clear the code from URL
+        # Exchange authorization code for access token
+        token_info = auth_manager.get_access_token(st.query_params["code"])
+
+        if token_info:
+            # Create authenticated client
+            sp = Spotify(auth_manager=auth_manager)
+
+            # Verify authentication works
+            user = sp.current_user()
+
+            # Update session state
+            st.session_state.auth_state = {
+                "authenticated": True,
+                "sp_client": sp,
+                "user_id": user["id"]
+            }
+
+            # Clear the code from URL to prevent re-processing
+            st.query_params.clear()
+            st.rerun()
+
     except Exception as e:
         st.error(f"Authentication failed: {e}")
         st.stop()
 
-# --- STEP 2: If token cached, authenticate automatically ---
-elif not st.session_state["authenticated"]:
-    token = auth_manager.get_cached_token()
-    if token and not auth_manager.is_token_expired(token):
-        st.session_state["authenticated"] = True
-        # Don't create sp here - it will be created after authentication check
+# 3. CHECK FOR EXISTING VALID SESSION
+elif not st.session_state.auth_state["authenticated"]:
+    try:
+        # Check if we have a cached token
+        token_info = auth_manager.get_cached_token()
 
-# --- STEP 3: If not authenticated yet, show login button ---
-if not st.session_state["authenticated"]:
+        if token_info and not auth_manager.is_token_expired(token_info):
+            # Token exists and is valid
+            sp = Spotify(auth_manager=auth_manager)
+
+            # Test the connection
+            user = sp.current_user()
+
+            st.session_state.auth_state = {
+                "authenticated": True,
+                "sp_client": sp,
+                "user_id": user["id"]
+            }
+            st.rerun()
+
+    except Exception:
+        # Token exists but is invalid/expired
+        st.session_state.auth_state["authenticated"] = False
+        st.session_state.auth_state["sp_client"] = None
+
+# 4. SHOW LOGIN IF NOT AUTHENTICATED
+if not st.session_state.auth_state["authenticated"]:
+    st.title("Spotify Playlist Analyzer")
+
+    # Generate authorization URL
     auth_url = auth_manager.get_authorize_url()
-    st.markdown(
-        f"<a href='{auth_url}' target='_blank'><button style='margin-top:20px;'>Log in to Spotify</button></a>",
-        unsafe_allow_html=True
-    )
+
+    # Show login button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("### Login Required")
+        st.markdown("Connect your Spotify account to analyze your playlists.")
+        st.markdown(
+            f'<a href="{auth_url}" target="_self">'
+            '<button style="background-color: #1DB954; color: white; padding: 10px 20px; '
+            'border: none; border-radius: 20px; cursor: pointer; font-size: 16px;">'
+            '🎵 Log in with Spotify</button>'
+            '</a>',
+            unsafe_allow_html=True
+        )
+
     st.stop()
 
-# --- IF WE REACH THIS POINT: user is authenticated ---
-sp = Spotify(auth_manager=auth_manager)
-st.error("6")
+# 5. USER IS AUTHENTICATED - PROCEED WITH APP
+sp = st.session_state.auth_state["sp_client"]
+current_user_id = st.session_state.auth_state["user_id"]
+
+# else:
+#     st.markdown("Please log in to Spotify to continue.")
+#     if st.button("Login with Spotify"):
+#         sp = create_spotify_client()
+#         st.session_state["spotipy_token"] = sp.auth_manager.cache_handler.get_cached_token()
+#         st.rerun()
+#     st.stop()
 
 # Fetch cached tracks & genres
 with st.spinner("Loading your liked songs and genres…"):
